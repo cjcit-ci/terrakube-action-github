@@ -70,7 +70,11 @@ async function run(): Promise<void> {
             core.debug(`JobId: ${jobId}`)
 
 
-            await checkTerrakubeLogs(terrakubeClient, githubActionInput.githubToken, organizationId, jobId, workspaceName, githubActionInput.showOutput)
+            const jobStatus = await checkTerrakubeLogs(terrakubeClient, githubActionInput.githubToken, organizationId, jobId, workspaceName, githubActionInput.showOutput)
+
+            if (jobStatus === false) {
+              core.setFailed(`JobId: ${jobId} failed`)
+            }
 
           } else {
             core.error(`Template not found: ${githubActionInput.terrakubeTemplate} in Organization: ${githubActionInput.terrakubeOrganization}`)
