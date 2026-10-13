@@ -2,6 +2,8 @@ import * as core from '@actions/core'
 
 export interface GitHubActionInput {
   token: string,
+  useOidc?: boolean,
+  oidcAudience?: string,
   terrakubeEndpoint: string,
   terrakubeRepository: string,
   terrakubeTemplate: string,
@@ -15,9 +17,14 @@ export interface GitHubActionInput {
   githubWorkspace: string,
 }
 
-export async function getActionInput(): Promise<any> {
-  const terrakubeToken: string = core.getInput('terrakube_token', { required: true })
-  core.debug(`Terrakube Token: ${terrakubeToken.substring(0, 10)}****`)
+export async function getActionInput(): Promise<GitHubActionInput> {
+  const useOidc = core.getBooleanInput('terrakube_use_oidc')
+  const terrakubeToken = core.getInput('terrakube_token', { required: !useOidc })
+  const oidcAudience = core.getInput('terrakube_oidc_audience') || 'terrakube.platform.local'
+  if (useOidc && terrakubeToken) {
+    throw new Error('Set either TERRAKUBE_TOKEN or TERRAKUBE_USE_OIDC, not both.')
+  }
+  if (terrakubeToken) core.setSecret(terrakubeToken)
 
   const terrakubeEndpoint: string = core.getInput('terrakube_endpoint', { required: true })
   core.debug(`Terrakube Endpoint: ${terrakubeEndpoint}`)
@@ -59,6 +66,8 @@ export async function getActionInput(): Promise<any> {
 
   const terrakubeActionInput: GitHubActionInput = {
     token: terrakubeToken,
+    useOidc,
+    oidcAudience,
     terrakubeEndpoint: terrakubeEndpoint,
     terrakubeRepository: terrakubeRepository,
     terrakubeTemplate: terrakubeTemplate,

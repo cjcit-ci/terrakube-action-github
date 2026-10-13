@@ -126,7 +126,7 @@ async function checkTerrakubeLogs(terrakubeClient: TerrakubeClient, githubToken:
 
     const outputPath = new URL(jobSteps[index].attributes.output).pathname
     const response: httpm.HttpClientResponse = await httpClient.get(`${terrakubeEndpoint}${outputPath}`, {
-      'Authorization': `Bearer ${terrakubeClient.getAuthToken()}`
+      'Authorization': `Bearer ${await terrakubeClient.getAuthToken()}`
   });
 
     let body: string = await response.readBody()

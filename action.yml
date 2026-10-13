@@ -5,8 +5,16 @@ branding:
   color: "purple"
 inputs:
   TERRAKUBE_TOKEN:
-    description: "Terrakube Personal Access Token"
-    required: true
+    description: "Terrakube token (required unless TERRAKUBE_USE_OIDC is true)"
+    required: false
+  TERRAKUBE_USE_OIDC:
+    description: "Authenticate with GitHub OIDC; requires id-token: write and Terrakube federation configuration"
+    required: false
+    default: "false"
+  TERRAKUBE_OIDC_AUDIENCE:
+    description: "Audience requested for the GitHub OIDC token"
+    required: false
+    default: "terrakube.platform.local"
   TERRAKUBE_ENDPOINT:
     description: "Terrakube Endpoint"
     required: true
@@ -71,6 +79,8 @@ runs:
       env:
         # INPUT_<VARIABLE_NAME> is not available in Composite run steps
         # https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#example-specifying-inputs
+        INPUT_TERRAKUBE_USE_OIDC: ${{ inputs.TERRAKUBE_USE_OIDC }}
+        INPUT_TERRAKUBE_OIDC_AUDIENCE: ${{ inputs.TERRAKUBE_OIDC_AUDIENCE }}
         INPUT_TERRAKUBE_TOKEN: ${{ inputs.TERRAKUBE_TOKEN }}
         INPUT_TERRAKUBE_ENDPOINT: ${{ inputs.TERRAKUBE_ENDPOINT }}
         INPUT_TERRAKUBE_TEMPLATE: ${{ inputs.TERRAKUBE_TEMPLATE }}

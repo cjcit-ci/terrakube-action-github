@@ -79,6 +79,47 @@ jobs:
           SHOW_OUTPUT: false
 ```
 
+## Federated credentials (GitHub OIDC)
+
+Set `TERRAKUBE_USE_OIDC: true` to authenticate directly with GitHub's short-lived OIDC identity instead of storing a Terrakube personal access token. This follows the token acquisition approach in [terrakube-auth](https://github.com/hbland-cjc/terrakube-auth/blob/main/src/client/federated_identity.ts): request an audience-specific GitHub ID token and send it to Terrakube as the bearer credential.
+
+Configure Terrakube to trust the GitHub Actions issuer (`https://token.actions.githubusercontent.com`), the requested audience, and the appropriate subject for your repository, branch, pull request, or environment. The audience must match the Terrakube federation configuration; it is independent of `TERRAKUBE_ENDPOINT`. Grant `id-token: write` on the workflow job.
+
+```yaml
+name: Terrakube Federated Plan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write # Needed when SHOW_OUTPUT posts PR comments.
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: AzBuilder/terrakube-action-github@main
+        with:
+          TERRAKUBE_USE_OIDC: true
+          TERRAKUBE_OIDC_AUDIENCE: 'terrakube.platform.local'
+          TERRAKUBE_TEMPLATE: 'Terraform-Plan'
+          TERRAKUBE_ENDPOINT: ${{ secrets.TERRAKUBE_ENDPOINT }}
+          TERRAKUBE_BRANCH: ${{ github.head_ref }}
+          TERRAKUBE_ORGANIZATION: 'terrakube_organization_name'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHOW_OUTPUT: true
+```
+
+Omit `TERRAKUBE_TOKEN` when enabling OIDC; supplying both is an error. Existing workflows using `TERRAKUBE_TOKEN` continue to work without OIDC permissions. You can also pass the `token` output from a separate `terrakube-auth` step as `TERRAKUBE_TOKEN` with OIDC disabled in this action.
+
+Credentials are masked before use. In direct OIDC mode, the action caches the token and requests a new one before expiry during API polling and job-log downloads. Tokens supplied through `TERRAKUBE_TOKEN` are used as-is and cannot be renewed by this action. No Terraform credential file is needed here because Terraform runs remotely in Terrakube; cloud-provider credentials for that remote execution remain a separate configuration.
+
 ## Terrakube Variables
 
 To define terrakube variables to connect to cloud providers it is recommended to use Global Variables inside the organization using the UI.
@@ -88,7 +129,9 @@ Terraform variables could be define inside a terraform.tfvars inside each folder
 
 | Variable                    | Usage                                                                                | Default |
 | --------------------------- | ------------------------------------------------------------------------------------ | ------- |
-| TERRAKUBE_TOKEN (\*)        | Terrakube Personal Access Token                                                      |         |
+| TERRAKUBE_TOKEN            | Terrakube bearer token; required unless OIDC is enabled                              |         |
+| TERRAKUBE_USE_OIDC         | Request and renew a GitHub OIDC token                                                | false   |
+| TERRAKUBE_OIDC_AUDIENCE    | Audience matching the Terrakube federation configuration                             | terrakube.platform.local |
 | TERRAKUBE_TEMPLATE (\*)     | Terrakube template name                                                              |         |
 | TERRAKUBE_ENDPOINT (\*)     | Terrakbue api endpoint                                                               |         |
 | TERRAKUBE_ORGANIZATION (\*) | Terrakbue organization                                                               |         |
